@@ -7,13 +7,17 @@ Hi, I'm oZumbiAnalitico, an amateur programmer. This is one of my first experien
 3. I used microsoft copilot, you can see the full conversation [here]( https://copilot.microsoft.com/shares/HDmaQzPo52moAgq5tUHab )
 
 ## Commands
-1. @exit ; Exit the application
-2. @load ; Load a file
-3. @{X,Y} ; X width and Y height
-4. ctrl+s ; Save the File
-5. @{font:X} ; X font size
-6. @compact ; set compact mode true
-7. @-compact ; set compact mode false
-8. @shrink ; set shrink mode true (when the program loses focus they will change size)
-9. @-shrink ; ...
-10. alt+arrow_key ; move the application 
+1. F1 - Execute commands
+2. Alt+Arrow_Key - Move the application
+3. Ctrl+S - Save the current file
+4. @exit - Exit the application
+5. @load - Load a file
+7. @{font:X} - X font size
+8. @{color:X,Y,Z} - change color RGB ~ 0 to 255
+9. @{color:Color_Name} - accept some common color names
+10. @{X,Y} - X width and Y height
+11. @compact ; set compact mode true
+12. @-compact ; set compact mode false
+13. @shrink ; set shrink mode true (when the program loses focus they will change size)
+14. @-shrink ; ...
+
