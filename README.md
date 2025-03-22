@@ -16,8 +16,9 @@ Hi, I'm oZumbiAnalitico, an amateur programmer. This is one of my first experien
 8. @{color:X,Y,Z} - change color RGB ~ 0 to 255
 9. @{color:Color_Name} - accept some common color names
 10. @{X,Y} - X width and Y height
-11. @compact ; set compact mode true
-12. @-compact ; set compact mode false
-13. @shrink ; set shrink mode true (when the program loses focus they will change size)
-14. @-shrink ; ...
+11. @compact - set compact mode true
+12. @-compact - set compact mode false
+13. @shrink - set shrink mode true (when the program loses focus they will change size)
+14. @-shrink - ...
+15. @{eval:Simple_Aritmethic_Expression} - calculator
 
