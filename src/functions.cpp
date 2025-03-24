@@ -40,6 +40,7 @@ void CheckForCommands()
         // Check for the @exit command anywhere in the text
         if (text.find(L"@exit") != std::wstring::npos)
         {
+			KillTimer(GetParent(hwndEdit), TIMER_ID);
             PostQuitMessage(0);
 			return;
         }
@@ -96,6 +97,8 @@ void CheckForCommands()
         {
             int width = std::stoi(matchesSize[1].str());
             int height = std::stoi(matchesSize[2].str());
+			full_width = width;
+			full_height = height;
             SetWindowPos(GetParent(hwndEdit), NULL, 0, 0, width, height, SWP_NOZORDER | SWP_NOMOVE | SWP_NOOWNERZORDER);
         }
 
@@ -306,6 +309,7 @@ double EvaluateExpression(const std::wstring& expression)
     return values.top();
 }
 void compact(HWND child, HWND parent){
+	if(isCompactMode) return ;
     // Remove the menu
     SetMenu(parent, NULL);
 
@@ -319,6 +323,7 @@ void compact(HWND child, HWND parent){
     isCompactMode = true; // Atualiza o estado
 }
 void full(HWND child, HWND parent){
+	if(!isCompactMode) return ;
     // Restore the menu
     AddMenu(parent); // Add the menu
 
@@ -333,8 +338,8 @@ void full(HWND child, HWND parent){
 }
 
 void ResizeWindow(HWND hwnd, int newWidth, int newHeight) {
-    SetWindowPos(hwnd, NULL, 0, 0, newWidth, newHeight, 
-                 SWP_NOMOVE | SWP_NOZORDER);
+	//if(!isCompactMode) return ;
+    SetWindowPos(hwnd, NULL, 0, 0, newWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
 }
 
 int getWidth(HWND hwnd){

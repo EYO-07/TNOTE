@@ -39,5 +39,8 @@ extern std::unordered_map<std::wstring, COLORREF> colorMap;
 extern bool isCompactMode;
 extern bool isShrinkMode;
 extern bool is_rShrinkMode;
+extern const int TIMER_ID;
+extern int full_width;
+extern int full_height;
 
 #endif // FUNCTIONS_H
