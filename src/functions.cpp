@@ -132,6 +132,10 @@ void CheckForCommands()
 		if (text.find(L"@-shrink") != std::wstring::npos) isShrinkMode = false;
 		if (text.find(L"@rshrink") != std::wstring::npos) is_rShrinkMode = true;
 		if (text.find(L"@-rshrink") != std::wstring::npos) is_rShrinkMode = false;
+		if (text.find(L"@dropdown") != std::wstring::npos) isDropDown = true;
+		if (text.find(L"@-dropdown") != std::wstring::npos) isDropDown = false;
+		if (text.find(L"@dropright") != std::wstring::npos) isDropRight = true;
+		if (text.find(L"@-dropright") != std::wstring::npos) isDropRight = false;
         
 		delete[] buffer;
     }
@@ -352,6 +356,23 @@ int getHeight(HWND hwnd){
     RECT rect;
 	if (GetClientRect(hwnd, &rect)) return rect.bottom - rect.top;
 	return 100;
+}
+
+void MoveWindow(HWND hWnd, int dx, int dy) {
+    if (hWnd == nullptr) {
+        return; // Verifica se o identificador da janela é válido
+    }
+
+    // Obtém as coordenadas atuais da janela
+    RECT rect;
+    if (GetWindowRect(hWnd, &rect)) {
+        // Calcula as novas coordenadas
+        int newX = rect.left + dx;
+        int newY = rect.top + dy;
+
+        // Move a janela para as novas coordenadas
+        SetWindowPos(hWnd, nullptr, newX, newY, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    }
 }
 
 /*

@@ -27,7 +27,9 @@ bool isShrinkMode = false;
 bool is_rShrinkMode = false;
 int full_width, full_height ;
 const int TIMER_ID = 1;
-const int STEP_SIZE = 10;
+const int STEP_SIZE = 5;
+bool isDropDown = false;
+bool isDropRight = false;
 
 // -- ENTRY POINT
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -88,7 +90,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         L"Consolas");              // FaceName
     SendMessage(hwndEdit, WM_SETFONT, (WPARAM)hFont, TRUE); // Set the font for the edit control
     // -- 
-    std::wstring initial_text(L"// TNOTE : Translucent Notepad\r\n// (Press F1 to run): @{font:13} @{color:white} @{400,400} @compact @shrink \r\n// (Put @ to run): -compact load exit -shrink rshrink -rshrink {eval:1+2}\r\n// alt+arrow_key moves, ctrl+s saves, F1 execute commands");
+    std::wstring initial_text(L"// TNOTE : Translucent Notepad\r\n// (Press F1 to run): @{font:13} @{color:white} @{700,400} @compact @shrink \r\n// (Put @ to run): -compact load exit -shrink rshrink -rshrink {eval:1+2} -dropdown dropdown -dropright dropright \r\n// alt+arrow_key moves, ctrl+s saves, F1 execute commands");
     SetWindowText(hwndEdit, initial_text.c_str());
     // Run the message loop.
     MSG msg = { };
@@ -144,8 +146,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		isExpanding = ( isShrinkMode && (current_height<full_height) );
 		is_rExpanding = ( is_rShrinkMode && (current_width<full_width) );
 		if( isExpanding || is_rExpanding ){
-			if(isExpanding && isCompactMode) ResizeWindow(hwnd, current_width, min(current_height+STEP_SIZE, full_height));
-			if(is_rExpanding && isCompactMode) ResizeWindow(hwnd, min(current_width+STEP_SIZE, full_width), getHeight(hwnd));
+			if(isExpanding && isCompactMode){ 
+				if( isDropDown ){ ResizeWindow(hwnd, current_width, min(current_height+STEP_SIZE, full_height)); } else {
+					int changed_height = min(current_height+STEP_SIZE, full_height);
+					int dy = changed_height - current_height;
+					MoveWindow(hwnd, 0, -dy);
+					ResizeWindow(hwnd, current_width, changed_height);
+				}
+			}
+			if(is_rExpanding && isCompactMode){ 
+				if( isDropRight ){ ResizeWindow(hwnd, min(current_width+STEP_SIZE, full_width), getHeight(hwnd)); } else {
+					int changed_width = min(current_width+STEP_SIZE, full_width);
+					int dx = changed_width - current_width;
+					MoveWindow(hwnd, -dx, 0);
+					ResizeWindow(hwnd, changed_width, getHeight(hwnd));
+				}
+			}
 		}
 		else {
 			KillTimer(hwnd, TIMER_ID);
@@ -158,8 +174,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         {
             SetLayeredWindowAttributes(hwnd, 0, (BYTE)50, LWA_ALPHA); // Set transparency to 100 when inactive
 			KillTimer(hwnd, TIMER_ID);
-			if( isShrinkMode && isCompactMode) ResizeWindow(hwnd, getWidth(hwnd), getHeight(hwnd)/5);
-			if( is_rShrinkMode && isCompactMode) ResizeWindow(hwnd, getWidth(hwnd)/7, getHeight(hwnd));
+			if( isShrinkMode && isCompactMode){ 
+				if ( isDropDown ) {	ResizeWindow(hwnd, getWidth(hwnd), getHeight(hwnd)/8); } else {
+					int changed_height = floor( getHeight(hwnd)/8 );
+					int dy = getHeight(hwnd) - changed_height;
+					MoveWindow(hwnd, 0, dy);
+					ResizeWindow(hwnd, getWidth(hwnd), changed_height); 
+				}
+			}
+			if( is_rShrinkMode && isCompactMode){ 
+				if ( isDropRight ) { ResizeWindow(hwnd, getWidth(hwnd)/10, getHeight(hwnd)); } else {
+					int changed_width = floor( getWidth(hwnd)/10 );
+					int dx = getWidth(hwnd) - changed_width;
+					MoveWindow(hwnd, dx, 0);
+					ResizeWindow(hwnd, changed_width, getHeight(hwnd));
+				}
+			}
         }
         else
         {

@@ -30,6 +30,7 @@ void full(HWND child, HWND parent);
 void ResizeWindow(HWND hwnd, int newWidth, int newHeight);
 int getWidth(HWND hwnd);
 int getHeight(HWND hwnd);
+void MoveWindow(HWND hWnd, int dx, int dy);
 
 extern HWND hwndEdit;
 extern COLORREF textColor;
@@ -42,5 +43,7 @@ extern bool is_rShrinkMode;
 extern const int TIMER_ID;
 extern int full_width;
 extern int full_height;
+extern bool isDropDown;
+extern bool isDropRight;
 
 #endif // FUNCTIONS_H
