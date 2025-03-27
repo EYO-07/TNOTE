@@ -27,7 +27,7 @@ bool isShrinkMode = false;
 bool is_rShrinkMode = false;
 int full_width, full_height ;
 const int TIMER_ID = 1;
-const int STEP_SIZE = 5;
+const int STEP_SIZE = 10;
 bool isDropDown = false;
 bool isDropRight = false;
 
@@ -62,7 +62,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     // Create Edit Control
     hwndEdit = CreateWindowEx(
         WS_EX_CLIENTEDGE, L"EDIT", NULL,
-        WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE | ES_AUTOHSCROLL | ES_AUTOVSCROLL,
+        WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL,
         0, 0, CW_USEDEFAULT, CW_USEDEFAULT,
         hwnd, NULL, hInstance, NULL
     );
@@ -89,6 +89,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         FIXED_PITCH | FF_MODERN,   // PitchAndFamily
         L"Consolas");              // FaceName
     SendMessage(hwndEdit, WM_SETFONT, (WPARAM)hFont, TRUE); // Set the font for the edit control
+	SendMessage(hwndEdit, EM_FMTLINES, TRUE, 0);
     // -- 
     std::wstring initial_text(L"// TNOTE : Translucent Notepad\r\n// (Press F1 to run): @{font:13} @{color:white} @{700,400} @compact @shrink \r\n// (Put @ to run): -compact load exit -shrink rshrink -rshrink {eval:1+2} -dropdown dropdown -dropright dropright \r\n// alt+arrow_key moves, ctrl+s saves, F1 execute commands");
     SetWindowText(hwndEdit, initial_text.c_str());
