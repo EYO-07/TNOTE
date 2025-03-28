@@ -24,3 +24,7 @@ Hi, I'm oZumbiAnalitico, an amateur programmer. This is one of my first experien
 16. @-rshrink - ...
 17. @{eval:Simple_Aritmethic_Expression} - calculator
 
+## Videos
+1. https://youtu.be/U5DsChUS2is?si=P-B_WGgtpNVgcBhv
+2. https://youtu.be/tlE5NIXcAfw?si=0EmuQ193yQdUGHAO
+3. https://youtu.be/Rvcw2chJIaU?si=Fn_un90_Cq8GE2j4
