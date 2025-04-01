@@ -33,6 +33,7 @@ bool isDropDown = false;
 bool isDropRight = false;
 
 // -- ENTRY POINT
+// Keyboard Input ~ EditProc() || ... | % WM_SYSKEYDOWN | % WM_KEYDOWN || % VK_F1 | % VK_F5 || CheckForF5Commands() | CreateLatex() | CompileLatex() | OpenPDF() 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	// -- 
@@ -294,10 +295,19 @@ LRESULT CALLBACK EditProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     }
 
-    if (uMsg == WM_KEYDOWN && wParam == VK_F1) // F1 pressed
+    if (uMsg == WM_KEYDOWN ) // F1, F5 pressed
     {
-        CheckForCommands();
-        return 0;
+		if(wParam == VK_F1){
+			CheckForCommands();
+			return 0;
+		} 
+		else if (wParam == VK_F5){
+			CheckForF5Commands(hwnd);
+			CreateLatex( GetParent( hwnd) );
+			CompileLatex();
+			OpenPDF();
+			return 0;
+		}
     }
 
     // Call the original window procedure for default handling

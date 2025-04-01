@@ -1,6 +1,10 @@
 #include "functions.h"
 
 // --
+std::vector<std::wstring> latex_content;
+std::wstring latex_headers =  L"\\documentclass[10pt,a4paper]{article}\r\n\\usepackage{blindtext}\r\n\\usepackage[utf8]{inputenc}\r\n\\usepackage{amsmath}\r\n\\usepackage{amsfonts}\r\n\\usepackage{amssymb}\r\n\\usepackage{graphicx}\r\n\\usepackage{mathrsfs}\r\n\\setlength\\topmargin{0in}\r\n\\setlength\\headheight{0in}\r\n\\setlength\\headsep{0in}\r\n\\setlength\\textheight{8.9in}\r\n\\setlength\\textwidth{6.5in}\r\n\\setlength\\oddsidemargin{0in}\r\n\\setlength\\evensidemargin{0in}\r\n\\usepackage{listings}\r\n";
+
+// --
 void ChangeFontSize(int newSize)
 {
     // Create a new font with the specified size
@@ -375,65 +379,352 @@ void MoveWindow(HWND hWnd, int dx, int dy) {
     }
 }
 
-/*
-void SetupRichEdit(HWND hwndEdit)
-{
-    // Define o fundo preto
-    SendMessage(hwndEdit, EM_SETBKGNDCOLOR, 0, (LPARAM)RGB(0, 0, 0)); // Fundo preto
-
-    // Configura a cor de texto padrão como amarelo
-    CHARFORMAT2 cfDefault;
-    ZeroMemory(&cfDefault, sizeof(CHARFORMAT2));
-    cfDefault.cbSize = sizeof(CHARFORMAT2);
-    cfDefault.dwMask = CFM_COLOR;
-    cfDefault.crTextColor = RGB(255, 255, 0); // Amarelo
-    SendMessage(hwndEdit, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cfDefault);
+void CheckForF5Commands(HWND hwndEdit){
+	// -- 
+	if (hwndEdit == nullptr) return ;
+	latex_content.clear();
+	LoadLatexHeaders();
+	latex_content.push_back(latex_headers);
+	latex_content.push_back(L"\r\n\\begin{document}\r\n");
+	//
+	int length = GetWindowTextLength(hwndEdit);
+	if (length == 0) return;    
+	wchar_t* buffer = new wchar_t[length + 1];
+	GetWindowText(hwndEdit, buffer, length + 1);
+	std::wstring text(buffer);
+	// -- 
+	std::wregex regexLatex(L"\\[(tex[^>]*)>([^<]*)<end\\]");
+	auto in = std::wsregex_iterator(text.begin(), text.end(), regexLatex);
+    auto fi = std::wsregex_iterator(); // Iterador final padrão
+	int count = 0;
+	for (auto it = in; it != fi; ++it){
+		std::wsmatch matchesLatex = *it;
+		// -- 
+		if ( matchesLatex[1].str()==L"tex" )
+		{
+			latex_content.push_back( matchesLatex[2].str() );
+			latex_content.push_back( L"\r\n\\hspace{\\baselineskip}\r\n" );
+			count++;
+		}
+		else if ( matchesLatex[1].str()==L"tex:itemize" || matchesLatex[1].str()==L"tex:item" )
+		{
+			latex_content.push_back(L"\\begin{itemize}\r\n");
+			latex_content.push_back( matchesLatex[2].str() );
+			latex_content.push_back(L"\r\n\\end{itemize}\r\n");
+			latex_content.push_back( L"\r\n\\hspace{\\baselineskip}\r\n" );
+			count++;
+		}
+		else if ( matchesLatex[1].str()==L"tex:verbatim" || matchesLatex[1].str()==L"tex:verb" )
+		{
+			latex_content.push_back(L"\\begin{verbatim}\r\n");
+			latex_content.push_back( matchesLatex[2].str() );
+			latex_content.push_back(L"\r\n\\end{verbatim}\r\n");
+			latex_content.push_back( L"\r\n\\hspace{\\baselineskip}\r\n" );
+			count++;
+		}
+		else if ( matchesLatex[1].str()==L"tex:enumerate" || matchesLatex[1].str()==L"tex:enum" )
+		{
+			latex_content.push_back(L"\\begin{enumerate}\r\n");
+			latex_content.push_back( matchesLatex[2].str() );
+			latex_content.push_back(L"\r\n\\end{enumerate}\r\n");
+			latex_content.push_back( L"\r\n\\hspace{\\baselineskip}\r\n" );
+			count++;
+		}
+		else if ( matchesLatex[1].str()==L"tex:math" || matchesLatex[1].str()==L"tex:$$" )
+		{
+			latex_content.push_back(L"$$ ");
+			latex_content.push_back( matchesLatex[2].str() );
+			latex_content.push_back(L" $$");
+			latex_content.push_back( L"\r\n\\hspace{\\baselineskip}\r\n" );
+			count++;
+		}
+		else if ( matchesLatex[1].str()==L"tex:code" )
+		{
+			latex_content.push_back(L"\\begin{lstlisting}");
+			latex_content.push_back( matchesLatex[2].str() );
+			latex_content.push_back(L"\r\n\\end{lstlisting}\r\n");
+			latex_content.push_back( L"\r\n\\hspace{\\baselineskip}\r\n" );
+			count++;
+		}
+	}
+	latex_content.push_back( L"\r\n\\hspace{\\baselineskip}\r\n" );
+	latex_content.push_back(L"\\end{document}\r\n");
+	delete[] buffer;
+	if (count==0) latex_content.clear();
 }
-void HighlightKeywords(HWND hwndEdit)
-{
-    // Palavras-chave que devem ser destacadas
-    std::vector<std::wstring> keywords = { L"@exit", L"@load", L"@save", L"@compact", L"@-compact" };
 
-    CHARRANGE charRange;
-    CHARFORMAT2 charFormat;
+void CreateLatex(HWND hwnd) {
+	if ( currentFileName.empty()) return ;
+    // Verifica se há conteúdo no vetor latex_content
+    if (latex_content.empty()) return;
+	if (latex_content.size()==0) return;
+    // Nome fixo para o arquivo LaTeX
+    std::wstring fileName = currentFileName+L".tex";
 
-    std::wstring text;
-    int length = GetWindowTextLength(hwndEdit);
-    text.resize(length);
-    GetWindowText(hwndEdit, &text[0], length + 1);
+    // Cria o arquivo no diretório atual
+    HANDLE hFile = CreateFile(
+        fileName.c_str(),
+        GENERIC_WRITE,
+        0,
+        NULL,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
 
-    for (const auto& keyword : keywords)
-    {
-        size_t pos = text.find(keyword);
-        while (pos != std::wstring::npos)
-        {
-            // Configura o intervalo de caracteres (start e end)
-            charRange.cpMin = pos;
-            charRange.cpMax = pos + keyword.length();
-            SendMessage(hwndEdit, EM_EXSETSEL, 0, (LPARAM)&charRange);
+    // Verifica se o arquivo foi criado com sucesso
+    if (hFile == INVALID_HANDLE_VALUE) return;
 
-            // Configura o formato de texto
-            memset(&charFormat, 0, sizeof(CHARFORMAT2));
-            charFormat.cbSize = sizeof(CHARFORMAT2);
-            charFormat.dwMask = CFM_COLOR | CFM_BOLD;
-            charFormat.crTextColor = RGB(255, 0, 0); // Cor vermelha
-            charFormat.dwEffects = CFE_BOLD;
+    // Converte o conteúdo do vetor latex_content em uma única string
+    std::wstringstream ss;
+    for (const auto& it : latex_content) ss << it;
+    std::wstring end_tex = ss.str();
 
-            // Aplica o formato
-            SendMessage(hwndEdit, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&charFormat);
+    // Converte de std::wstring (UTF-16) para std::string (UTF-8)
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    std::string utf8Content = converter.to_bytes(end_tex);
 
-            // Continua procurando a próxima palavra-chave
-            pos = text.find(keyword, pos + keyword.length());
-        }
+    // Escreve o conteúdo convertido (UTF-8) no arquivo
+    DWORD dwWritten;
+    WriteFile(hFile, utf8Content.c_str(), (DWORD)utf8Content.size(), &dwWritten, NULL);
+
+    // Fecha o handle do arquivo
+    CloseHandle(hFile);
+}
+
+void CompileLatex() {
+	if (!ExistsCommand(L"pdflatex") ){ 
+		MessageBox(nullptr, L"can't find pdflatex, please install miktek", L"Error", MB_OK | MB_ICONERROR);
+		return ;
+	}
+	if (latex_content.empty()) return;
+	if (latex_content.size()==0) return;
+	if ( currentFileName.empty()) return ;
+    // Comando para compilar o arquivo .tex
+	//std::wstring filename_path(GetDirectory(currentFileName));
+    std::wstring filename = currentFileName+L".tex";
+	if(!FileExists(filename)) return ;
+	//filename=filename_path + filename;
+    std::wstring command = L"pdflatex -interaction=nonstopmode \""+filename+L"\"";
+    // Configuração do processo
+    STARTUPINFO si = { sizeof(STARTUPINFO) };
+    PROCESS_INFORMATION pi = { 0 };
+    // Criação do processo
+    if (CreateProcess(
+            nullptr, // Nome do aplicativo (nullptr porque está no comando)
+            &command[0], // Comando a ser executado
+            nullptr, // Segurança do processo
+            nullptr, // Segurança da thread
+            FALSE, // Herança de handles
+            0, // Flags de criação
+            nullptr, // Ambiente
+            nullptr, // Diretório de trabalho
+            &si, // Informações de inicialização
+            &pi // Informações do processo
+        )) {
+        // Aguarda o término do processo
+        //WaitForSingleObject(pi.hProcess, INFINITE);
+        // Fecha os handles
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    } else {
+        // Caso ocorra um erro
+        MessageBox(nullptr, L"Compile Error", L"Erro", MB_OK | MB_ICONERROR);
+    }
+}
+
+std::wstring GetDirectory(const std::wstring& filePath) {
+    wchar_t buffer[MAX_PATH];
+    wcscpy_s(buffer, filePath.c_str());
+
+    // Remove o nome do arquivo para obter apenas o diretório
+    PathRemoveFileSpec(buffer); // Função da biblioteca Shlwapi
+    return std::wstring(buffer);
+}
+
+void OpenPDF(){
+	if (latex_content.empty()) return;
+	if (latex_content.size()==0) return;
+	if ( currentFileName.empty()) return ;
+	std::wstring filename = currentFileName+L".pdf";
+	std::wstring command = filename;
+	if(!FileExists(filename)) return ;
+	// Configuração do processo
+    // Usa ShellExecute para abrir o arquivo com o programa padrão
+    HINSTANCE result = ShellExecute(
+        NULL,        // Janela do proprietário (NULL para nenhum)
+        L"open",     // Ação (abrir o arquivo)
+        filename.c_str(), // Caminho completo do arquivo
+        NULL,        // Parâmetros (não necessário para abrir arquivos)
+        NULL,        // Diretório de trabalho (NULL para o atual)
+        SW_SHOWNORMAL // Mostra a janela do aplicativo
+    );
+    // Verifica se houve erro
+    if ((INT_PTR)result <= 32) {
+        std::wcerr << "Error while opening the file: " << result << std::endl;
+    }
+}
+
+bool FileExists(const std::wstring& filePath) {
+    DWORD fileAttributes = GetFileAttributes(filePath.c_str());
+    return (fileAttributes != INVALID_FILE_ATTRIBUTES &&
+            !(fileAttributes & FILE_ATTRIBUTE_DIRECTORY)); // Certifica que não é um diretório
+}
+
+void LoadLatexHeaders() {
+	if (currentFileName.empty()) return ;
+	std::wstring filename = L"headers.tex";
+	if( !FileExists( filename ) )
+	{
+		// -- create and use default headers
+		// Cria o arquivo no diretório atual
+		HANDLE hFile = CreateFile(
+			filename.c_str(),
+			GENERIC_WRITE,
+			0,
+			NULL,
+			CREATE_ALWAYS,
+			FILE_ATTRIBUTE_NORMAL,
+			NULL
+		);
+		// Verifica se o arquivo foi criado com sucesso
+		if (hFile == INVALID_HANDLE_VALUE) return;
+
+		// Converte de std::wstring (UTF-16) para std::string (UTF-8)
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+		std::string utf8Content = converter.to_bytes(latex_headers);
+		DWORD dwWritten;
+		WriteFile(hFile, utf8Content.c_str(), (DWORD)utf8Content.size(), &dwWritten, NULL);
+		// Fecha o handle do arquivo
+		CloseHandle(hFile);
+	} 
+	else 
+	{
+		// -- load the headers from file
+		latex_headers = LoadTextFileUTF8(filename);
+	}
+	
+}
+
+std::wstring LoadTextFile(std::wstring filename) {
+    // Abre o arquivo para leitura
+    HANDLE hFile = CreateFileW(
+        filename.c_str(),          // Nome do arquivo
+        GENERIC_READ,              // Acesso de leitura
+        FILE_SHARE_READ,           // Permitir leitura compartilhada
+        NULL,                      // Sem segurança especial
+        OPEN_EXISTING,             // Abrir arquivo existente
+        FILE_ATTRIBUTE_NORMAL,     // Atributos normais
+        NULL                       // Sem template para criação
+    );
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        throw std::runtime_error("Falha ao abrir o arquivo.");
     }
 
-    // Remove a seleção no final
-    charRange.cpMin = -1;
-    charRange.cpMax = -1;
-    SendMessage(hwndEdit, EM_EXSETSEL, 0, (LPARAM)&charRange);
+    // Obtem o tamanho do arquivo
+    DWORD fileSize = GetFileSize(hFile, NULL);
+    if (fileSize == INVALID_FILE_SIZE) {
+        CloseHandle(hFile);
+        throw std::runtime_error("Falha ao obter o tamanho do arquivo.");
+    }
+
+    // Lê o conteúdo do arquivo
+    wchar_t* buffer = new wchar_t[fileSize / sizeof(wchar_t) + 1]; // Aloca buffer
+    DWORD bytesRead;
+    if (!ReadFile(hFile, buffer, fileSize, &bytesRead, NULL)) {
+        delete[] buffer;
+        CloseHandle(hFile);
+        throw std::runtime_error("Falha ao ler o arquivo.");
+    }
+    buffer[fileSize / sizeof(wchar_t)] = L'\0'; // Garantir que a string está terminada
+
+    // Fecha o handle do arquivo
+    CloseHandle(hFile);
+
+    // Converte o buffer para std::wstring
+    std::wstring content(buffer);
+    delete[] buffer;
+
+    return content;
 }
 
-*/
+std::wstring LoadTextFileUTF8(std::wstring filename) {
+    // Abre o arquivo para leitura
+    HANDLE hFile = CreateFileW(
+        filename.c_str(),          // Nome do arquivo
+        GENERIC_READ,              // Acesso de leitura
+        FILE_SHARE_READ,           // Permitir leitura compartilhada
+        NULL,                      // Sem segurança especial
+        OPEN_EXISTING,             // Abrir arquivo existente
+        FILE_ATTRIBUTE_NORMAL,     // Atributos normais
+        NULL                       // Sem template para criação
+    );
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        throw std::runtime_error("Falha ao abrir o arquivo.");
+    }
+
+    // Obtém o tamanho do arquivo
+    DWORD fileSize = GetFileSize(hFile, NULL);
+    if (fileSize == INVALID_FILE_SIZE) {
+        CloseHandle(hFile);
+        throw std::runtime_error("Falha ao obter o tamanho do arquivo.");
+    }
+
+    // Lê o conteúdo do arquivo em um buffer
+    char* buffer = new char[fileSize + 1]; // Aloca buffer para bytes
+    DWORD bytesRead;
+    if (!ReadFile(hFile, buffer, fileSize, &bytesRead, NULL)) {
+        delete[] buffer;
+        CloseHandle(hFile);
+        throw std::runtime_error("Falha ao ler o arquivo.");
+    }
+    buffer[fileSize] = '\0'; // Garantir que o buffer está terminado
+
+    // Fecha o handle do arquivo
+    CloseHandle(hFile);
+
+    // Converte de UTF-8 para UTF-16 (std::wstring)
+    int wideCharSize = MultiByteToWideChar(CP_UTF8, 0, buffer, -1, NULL, 0);
+    if (wideCharSize == 0) {
+        delete[] buffer;
+        throw std::runtime_error("Falha ao converter para UTF-16.");
+    }
+
+    wchar_t* wideBuffer = new wchar_t[wideCharSize];
+    MultiByteToWideChar(CP_UTF8, 0, buffer, -1, wideBuffer, wideCharSize);
+
+    std::wstring content(wideBuffer);
+    delete[] buffer;
+    delete[] wideBuffer;
+
+    return content;
+}
+
+// Função para verificar se o comando existe
+bool ExistsCommand(const std::wstring& command) {
+    // Variável para armazenar o caminho completo do comando encontrado
+    wchar_t buffer[MAX_PATH];
+
+    // Tenta localizar o comando no PATH do sistema
+    DWORD result = SearchPathW(
+        NULL,          // Usa as pastas do PATH do sistema
+        command.c_str(), // Nome do comando
+        L".exe",       // Extensão padrão a ser considerada (executáveis)
+        MAX_PATH,      // Tamanho do buffer
+        buffer,        // Buffer para armazenar o caminho completo do comando
+        NULL           // Parte restante do nome (opcional, não usada aqui)
+    );
+
+    // Se o resultado for diferente de 0, o comando foi encontrado
+    return result != 0;
+}
+
+
+
+
+
 
 
 

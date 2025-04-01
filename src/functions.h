@@ -13,6 +13,11 @@
 #include <stack>
 #include <cctype>
 #include <cmath>
+#include <vector>
+#include <Shlwapi.h>
+#include <codecvt> // Para conversão UTF-8
+#include <iostream>
+#include <stdexcept>
 // #include <richedit.h>
 
 // Declarações das funções
@@ -31,6 +36,16 @@ void ResizeWindow(HWND hwnd, int newWidth, int newHeight);
 int getWidth(HWND hwnd);
 int getHeight(HWND hwnd);
 void MoveWindow(HWND hWnd, int dx, int dy);
+void CheckForF5Commands(HWND);
+void CreateLatex(HWND);
+void CompileLatex();
+std::wstring GetDirectory(const std::wstring& filePath);
+void OpenPDF();
+bool FileExists(const std::wstring& filePath);
+void LoadLatexHeaders();
+std::wstring LoadTextFile(std::wstring filename);
+std::wstring LoadTextFileUTF8(std::wstring filename);
+bool ExistsCommand(const std::wstring& command);
 
 extern HWND hwndEdit;
 extern COLORREF textColor;
@@ -45,5 +60,9 @@ extern int full_width;
 extern int full_height;
 extern bool isDropDown;
 extern bool isDropRight;
+extern std::vector<std::wstring> latex_content; 
+extern std::wstring latex_headers;
+
+// --
 
 #endif // FUNCTIONS_H
