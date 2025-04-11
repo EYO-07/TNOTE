@@ -7,20 +7,19 @@
 #include <string>
 #include <regex>
 #include <unordered_map>
-#include <commdlg.h>  // For common dialogs (e.g., SaveFile dialog)
-
+#include <commdlg.h> 
 #include <sstream>
 #include <stack>
 #include <cctype>
 #include <cmath>
 #include <vector>
 #include <Shlwapi.h>
-#include <codecvt> // Para conversão UTF-8
+#include <codecvt>
 #include <iostream>
 #include <stdexcept>
 // #include <richedit.h>
 
-// Declarações das funções
+// -- functions
 void ChangeFontSize(int newSize);
 void CheckForCommands();
 std::wstring GetFileNameFromPath(const std::wstring& filePath);
@@ -46,7 +45,12 @@ void LoadLatexHeaders();
 std::wstring LoadTextFile(std::wstring filename);
 std::wstring LoadTextFileUTF8(std::wstring filename);
 bool ExistsCommand(const std::wstring& command);
+void RatioResizeWindow(HWND hwnd, double ratio);
+void VerticalResize(HWND hwnd); 
+void HorizontalResize(HWND hwnd); 
+void UpdateCharLim(HWND hwndEdit);
 
+// -- global external vars
 extern HWND hwndEdit;
 extern COLORREF textColor;
 extern std::wstring currentFileName;
@@ -62,6 +66,8 @@ extern bool isDropDown;
 extern bool isDropRight;
 extern std::vector<std::wstring> latex_content; 
 extern std::wstring latex_headers;
+extern bool isGlobalHotkeyActive;
+//extern int character_limit;
 
 // --
 

@@ -140,7 +140,10 @@ void CheckForCommands()
 		if (text.find(L"@-dropdown") != std::wstring::npos) isDropDown = false;
 		if (text.find(L"@dropright") != std::wstring::npos) isDropRight = true;
 		if (text.find(L"@-dropright") != std::wstring::npos) isDropRight = false;
-        
+		// --
+		if (text.find(L"@hotkeys") != std::wstring::npos) isGlobalHotkeyActive = true ;
+		if (text.find(L"@-hotkeys") != std::wstring::npos) isGlobalHotkeyActive = false ;
+        // --
 		delete[] buffer;
     }
 }
@@ -177,6 +180,11 @@ void LoadFile(HWND hwnd)
             DWORD dwRead;
             ReadFile(hFile, pszText, dwFileSize, &dwRead, NULL);
             pszText[dwFileSize / sizeof(wchar_t)] = L'\0'; // Null-terminate the string
+			
+			// Atualiza o limite do Edit Control com base no tamanho do arquivo
+            int newLimit = dwFileSize / sizeof(wchar_t) + 1; // Limite baseado no tamanho do texto
+			newLimit = max( 1.5*newLimit, 32767 );
+            SendMessage(hwndEdit, EM_SETLIMITTEXT, newLimit, 0);
 
             SetWindowText(hwndEdit, pszText);
 
@@ -444,6 +452,21 @@ void CheckForF5Commands(HWND hwndEdit){
 			latex_content.push_back( matchesLatex[2].str() );
 			latex_content.push_back(L"\r\n\\end{lstlisting}\r\n");
 			latex_content.push_back( L"\r\n\\hspace{\\baselineskip}\r\n" );
+			count++;
+		}
+		else if ( matchesLatex[1].str()==L"tex:page" || matchesLatex[1].str()==L"tex:newpage" )
+		{
+			latex_content.push_back( L"\r\n\\newpage\r\n" );
+			latex_content.push_back( matchesLatex[2].str() );
+			latex_content.push_back( L"\r\n\\newpage\r\n" );
+			count++;
+		}
+		else if ( matchesLatex[1].str()==L"tex:img" || matchesLatex[1].str()==L"tex:image") // -- not tested yet
+		{
+			latex_content.push_back( L"\r\n\\begin{figure}[h!]\r\n" );
+			latex_content.push_back( L"\r\n\\centering\r\n" );
+			latex_content.push_back( L"\r\n\\includegraphics[width=\\textwidth]{" + matchesLatex[2].str() + L"}" );
+			latex_content.push_back( L"\r\n\\end{figure}\r\n" );
 			count++;
 		}
 	}
@@ -719,6 +742,94 @@ bool ExistsCommand(const std::wstring& command) {
 
     // Se o resultado for diferente de 0, o comando foi encontrado
     return result != 0;
+}
+
+void RatioResizeWindow(HWND hwnd, double ratio) {
+    if (!hwnd) return;
+	if (!IsWindow(hwnd)) return;
+	if (ratio <= 0) return;
+	int minWidth = 20;  // Exemplo de valor mínimo
+	int minHeight = 20; 
+    // Obtém as dimensões atuais da janela
+    RECT rect;
+    GetWindowRect(hwnd, &rect);
+    // Calcula o novo tamanho (diminuído pela metade, mantendo a proporção)
+    int width = (rect.right - rect.left) * ratio ;
+    int height = (rect.bottom - rect.top) * ratio ;
+	width = max(minWidth,width);
+	height = max(minHeight, height);
+    // Ajusta o tamanho da janela
+    SetWindowPos(hwnd, NULL, rect.left, rect.top, width, height, SWP_NOZORDER | SWP_NOMOVE);
+}
+
+void VerticalResize(HWND hwnd) {
+    if (!hwnd) return; // Verifica se a janela é válida
+    // Obtém o retângulo da janela atual
+    RECT rect;
+    GetWindowRect(hwnd, &rect);
+    // Calcula largura e altura atuais da janela
+    int currentWidth = rect.right - rect.left;
+    int currentHeight = rect.bottom - rect.top;
+    // Verifica se a proporção já é 9:16
+    if (currentWidth * 16 == currentHeight * 9) {
+        return; // Proporção já está correta, nada a fazer
+    }
+    // Calcula a área atual (width * height)
+    double area = static_cast<double>(currentWidth) * currentHeight;
+    // Ajusta para a proporção 9:16 preservando a área
+    int newWidth = static_cast<int>(std::sqrt(area * 9.0 / 16.0));
+    int newHeight = static_cast<int>(std::sqrt(area * 16.0 / 9.0));
+
+    // Garante que largura e altura estejam consistentes com a proporção
+    if (newWidth * 16 > newHeight * 9) {
+        newWidth = static_cast<int>(newHeight * 9.0 / 16.0);
+    } else {
+        newHeight = static_cast<int>(newWidth * 16.0 / 9.0);
+    }
+    // Redimensiona a janela com as novas dimensões
+    SetWindowPos(hwnd, NULL, rect.left, rect.top, newWidth, newHeight, SWP_NOZORDER | SWP_NOMOVE);
+}
+
+void HorizontalResize(HWND hwnd) {
+    if (!hwnd) return; // Verifica se a janela é válida
+    // Obtém o retângulo da janela atual
+    RECT rect;
+    GetWindowRect(hwnd, &rect);
+    // Calcula largura e altura atuais da janela
+    int currentWidth = rect.right - rect.left;
+    int currentHeight = rect.bottom - rect.top;
+    // Verifica se a proporção já é 16:9
+    if (currentWidth * 9 == currentHeight * 16) {
+        return; // Proporção já está correta, nada a fazer
+    }
+    // Calcula a área atual (width * height)
+    double area = static_cast<double>(currentWidth) * currentHeight;
+    // Ajusta para a proporção 16:9 preservando a área
+    int newWidth = static_cast<int>(std::sqrt(area * 16.0 / 9.0));
+    int newHeight = static_cast<int>(std::sqrt(area * 9.0 / 16.0));
+    // Garante que largura e altura estejam consistentes com a proporção
+    if (newWidth * 9 > newHeight * 16) {
+        newWidth = static_cast<int>(newHeight * 16.0 / 9.0);
+    } else {
+        newHeight = static_cast<int>(newWidth * 9.0 / 16.0);
+    }
+    // Redimensiona a janela com as novas dimensões
+    SetWindowPos(hwnd, NULL, rect.left, rect.top, newWidth, newHeight, SWP_NOZORDER | SWP_NOMOVE);
+}
+
+void UpdateCharLim(HWND hwndEdit) {
+    // Obter o limite atual de caracteres
+    int currentLimit = SendMessage(hwndEdit, EM_GETLIMITTEXT, 0, 0);
+
+    // Obter o tamanho atual do texto no Edit Control
+    int currentTextSize = GetWindowTextLength(hwndEdit);
+
+    // Verificar a condição: tamanho do texto > 80% do limite atual
+    if (currentTextSize > (0.8 * currentLimit)) {
+        // Atualizar o limite para 1,5 vezes o valor atual
+        int newLimit = currentLimit + (currentLimit / 2);
+        SendMessage(hwndEdit, EM_SETLIMITTEXT, newLimit, 0);
+    }
 }
 
 

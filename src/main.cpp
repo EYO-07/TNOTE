@@ -31,11 +31,23 @@ const int TIMER_ID = 1;
 const int STEP_SIZE = 10;
 bool isDropDown = false;
 bool isDropRight = false;
+bool isGlobalHotkeyActive = false;
+// int character_limit = 32767;
 
 // -- ENTRY POINT
 // Keyboard Input ~ EditProc() || ... | % WM_SYSKEYDOWN | % WM_KEYDOWN || % VK_F1 | % VK_F5 || CheckForF5Commands() | CreateLatex() | CompileLatex() | OpenPDF() 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
+	// -- global hotkeys
+    if (!RegisterHotKey(NULL, 1, MOD_WIN|MOD_ALT, VK_LEFT)) std::cout << "Can't register the hotkey \n";
+	if (!RegisterHotKey(NULL, 2, MOD_WIN|MOD_ALT, VK_RIGHT)) std::cout << "Can't register the hotkey \n";
+	if (!RegisterHotKey(NULL, 3, MOD_WIN|MOD_ALT, VK_UP)) std::cout << "Can't register the hotkey \n";
+	if (!RegisterHotKey(NULL, 4, MOD_WIN|MOD_ALT, VK_DOWN)) std::cout << "Can't register the hotkey \n";
+	if (!RegisterHotKey(NULL, 5, MOD_WIN|MOD_ALT, VK_PRIOR)) std::cout << "Can't register the hotkey \n"; // up
+	if (!RegisterHotKey(NULL, 6, MOD_WIN|MOD_ALT, VK_NEXT)) std::cout << "Can't register the hotkey \n"; // down
+	if (!RegisterHotKey(NULL, 7, MOD_WIN|MOD_ALT, VK_HOME)) std::cout << "Can't register the hotkey \n";
+	if (!RegisterHotKey(NULL, 8, MOD_WIN|MOD_ALT, VK_END)) std::cout << "Can't register the hotkey \n";
+	
 	// -- 
 	const wchar_t CLASS_NAME[] = L"Sample Window Class";
     WNDCLASS wc = { }; {	
@@ -93,18 +105,70 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         L"Consolas");              // FaceName
     SendMessage(hwndEdit, WM_SETFONT, (WPARAM)hFont, TRUE); // Set the font for the edit control
 	SendMessage(hwndEdit, EM_FMTLINES, TRUE, 0);
+
+	// Remover limite fixo de caracteres
+	//SendMessage(hwndEdit, EM_SETLIMITTEXT, character_limit, 0);
+    // 
     // -- 
-    std::wstring initial_text(L"// TNOTE : Translucent Notepad\r\n// (Press F1 to run): @{font:13} @{color:white} @{700,400} @compact @shrink \r\n// (Put @ to run): -compact load exit -shrink rshrink -rshrink {eval:1+2} -dropdown dropdown -dropright dropright \r\n// alt+arrow_key moves, ctrl+s saves, F1 execute commands");
+    std::wstring initial_text(L"// TNOTE : Translucent Notepad\r\n// (Press F1 to run): @{font:13} @{color:white} @{700,400} @compact @shrink \r\n// (Put @ to run): hotkeys -hotkeys -compact load exit -shrink rshrink -rshrink {eval:1+2} -dropdown dropdown -dropright dropright \r\n// alt+arrow_key moves, ctrl+s saves, F1 execute commands");
     SetWindowText(hwndEdit, initial_text.c_str());
     // Run the message loop.
     MSG msg = { };
     while (GetMessage(&msg, NULL, 0, 0)){
         TranslateMessage(&msg);
         DispatchMessage(&msg);
+		// -- Global Hotkeys
+		if(isGlobalHotkeyActive==true){
+			HWND currentHWND = GetForegroundWindow();
+			if (currentHWND){
+				if( msg.message == WM_HOTKEY ){
+					switch (msg.wParam) {
+						case 1: // WIN|ALT + Left
+							// Lógica para mover a janela para esquerda
+							MoveWindow(currentHWND, -10,0);
+							break;
+						case 2: // WIN|ALT + Right
+							// Lógica para mover a janela para direita
+							MoveWindow(currentHWND, 10,0);
+							break;
+						case 3: // WIN|ALT + up
+							// Lógica para mover a janela para cima
+							MoveWindow(currentHWND, 0,-10);
+							break;
+						case 4: // WIN|ALT + down
+							// Lógica para mover a janela para baixo 
+							MoveWindow(currentHWND, 0,10);
+							break;
+						case 5: // WIN|ALT + Page Up
+							RatioResizeWindow(currentHWND, 1.05);
+							break;
+						case 6: // WIN|ALT + Page Down
+							RatioResizeWindow(currentHWND, 0.95);
+							break;	
+						case 7:
+							VerticalResize(currentHWND);
+							break; 
+						case 8:
+							HorizontalResize(currentHWND);
+							break; 
+					}
+				}
+			}
+		}
     }
-    // Clean up
+    
+	// Clean up
     DeleteObject(hbrBkgnd);
     DeleteObject(hFont);
+	// Libera as hotkeys ao sair
+    UnregisterHotKey(NULL, 1);
+    UnregisterHotKey(NULL, 2);
+	UnregisterHotKey(NULL, 3);
+	UnregisterHotKey(NULL, 4);
+	UnregisterHotKey(NULL, 5);
+	UnregisterHotKey(NULL, 6);
+	UnregisterHotKey(NULL, 7);
+	UnregisterHotKey(NULL, 8);
     return 0;
 }
 
@@ -227,6 +291,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
+
+// EditProc() || % WM_SYSKEYDOWN or WM_KEYDOWN || % alt || % up | % down | % left | % right
 LRESULT CALLBACK EditProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     if (uMsg == WM_LBUTTONDBLCLK)
@@ -243,31 +309,33 @@ LRESULT CALLBACK EditProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         // Check if Alt key is pressed and handle arrow keys to move the window
         if (wParam == VK_MENU || (lParam & (1 << 29))) // Check if Alt key is pressed
-        {
-            HWND hwndMain = GetParent(hwnd); // Get the handle to the main window
-            RECT rect;
-            GetWindowRect(hwndMain, &rect);
-
-            switch (wParam)
-            {
-            case VK_UP: // Alt + Up Arrow
-                SetWindowPos(hwndMain, NULL, rect.left, rect.top - 10, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-                return 0;
-            case VK_DOWN: // Alt + Down Arrow
-                SetWindowPos(hwndMain, NULL, rect.left, rect.top + 10, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-                return 0;
-            case VK_LEFT: // Alt + Left Arrow
-                SetWindowPos(hwndMain, NULL, rect.left - 10, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-                return 0;
-            case VK_RIGHT: // Alt + Right Arrow
-                SetWindowPos(hwndMain, NULL, rect.left + 10, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-                return 0;
-            }
+        {            
+			if (!isGlobalHotkeyActive){
+				HWND hwndMain = GetParent(hwnd); // Get the handle to the main window
+				RECT rect;
+				GetWindowRect(hwndMain, &rect);
+				switch (wParam)
+				{
+				case VK_UP: // Alt + Up Arrow
+					SetWindowPos(hwndMain, NULL, rect.left, rect.top - 10, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+					return 0;
+				case VK_DOWN: // Alt + Down Arrow
+					SetWindowPos(hwndMain, NULL, rect.left, rect.top + 10, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+					return 0;
+				case VK_LEFT: // Alt + Left Arrow
+					SetWindowPos(hwndMain, NULL, rect.left - 10, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+					return 0;
+				case VK_RIGHT: // Alt + Right Arrow
+					SetWindowPos(hwndMain, NULL, rect.left + 10, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+					return 0;
+				}
+			}
         }
 
         // Check if Ctrl+S is pressed
         if ((GetKeyState(VK_CONTROL) & 0x8000) && (wParam == 'S'))
         {
+			UpdateCharLim(hwnd);
             if (!currentFileName.empty())
             {
                 // Save the file directly if currentFileName has a file name
