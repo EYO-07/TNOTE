@@ -1,0 +1,57 @@
+// DSL Logic - TNOTE - Minimalist Translucent Notepad 
+[ TNOTE - Minimalist Translucent Notepad ] {C++, windows API, Visual Studio} 
+I := Includes for main.cpp 
+F := Forward Declarations for main.cpp 
+G := Global Variables Definitions for main.cpp 
+M := wWinMain entry point function  
+P := window Procedure of Main Window WindowProc 
+E := Window Procedure of Edit Control EditProc 
+1. /main.cpp || I | F | G | M ()? | P ()? | E ()? 
+R := Register Main Window Class 
+Cm := Create Main Window Handle 
+Ce := Create Edit Control Handle 
+-> M () || R | Cm | Ce | & message loop | Clean Up 
+-> M () || R | Cm | Ce || Create a Multiline Edit Control as a Child of Main Window Handle | Set EditProc as the new window procedure for Edit Control and store the old edit control procedure in a variable 
+2. P () || % WM_CREATE | % WM_SETFOCUS | % WM_COMMAND | % WM_SIZE | % WM_TIMER | % WM_ACTIVATE | % WM_CTLCOLOREDIT | % WM_DESTROY | % WM_PAINT | return the call for DefWindProc default window procedure 
+-> P () || % WM_CREATE || AddMenu ()* 
+-> P () || ... | % WM_SETFOCUS || Set focus for Edit Control 
+-> P () || ... | % WM_COMMAND || % Load Menu Item Click || LoadFile()* 
+-> P () || ... | % WM_COMMAND || % Load Menu Item Click | % Save Menu Item Click || SaveFile()* 
+-> P () || ... | % WM_SIZE || Resize the Edit Control to Fit the Client Area 
+-> P () || ... | % WM_TIMER || ?
+-> P () || ... | % WM_ACTIVATE || % LOWORD(wParam) == WA_INACTIVE || Set Transparency to 100 (max 255)
+-> P () || ... | % WM_ACTIVATE || % LOWORD(wParam) == WA_INACTIVE | % else || Set Transparency to 200 (max 255) 
+-> P () || ... | % WM_CTLCOLOREDIT || Set Edit Control Text to Yellow | Set Edit Control Background to Black 
+-> P () || ... | % WM_DESTROY || ? 
+-> P () || ... | % WM_PAINT || ? 
+3. E () || % WM_LBUTTONDBLCLK | % WM_SYSKEYDOWN | % WM_KEYDOWN | return the call of the old Edit Control Procedure 
+-> E () || % WM_LBUTTONDBLCLK || % isCompactMode || full()* 
+-> E () || % WM_LBUTTONDBLCLK || % isCompactMode | % else || compact()* 
+-> E () || ... | % WM_SYSKEYDOWN || % alt key pressed | % ctrl + S pressed
+-> ... | % ctrl + S pressed || UpdateCharLim()* | % currentFileName is not empty | % else || ?
+-> ... | % ctrl + S pressed || UpdateCharLim()* | % currentFileName is not empty || ? 
+-> ... | % ctrl + S pressed || UpdateCharLim()* | % currentFileName is not empty | % else | return 0 
+-> E () || ... | % WM_SYSKEYDOWN || % alt key pressed || % VK_UP, VK_DOWN, VK_RIGHT, VK_LEFT || Move the Window 
+-> E () || ... | % WM_KEYDOWN || % VK_F1 || Check for Commands on Edit Control Text ()* 
+-> E () || ... | % WM_KEYDOWN || % VK_F1 | % VK_F5 || Latex Document Creation with Edit Control Text ()* || ? 
+4. /functions.h || Includes | Function Declarations | Global Variables Declarations 
+5. /functions.cpp || Includes | ... 
+-> /functions.cpp || ... | CheckForCommands ()? || ? 
+-> /functions.cpp || ... | LoadFile ()? || ? 
+-> /functions.cpp || ... | SaveFile ()? || ? 
+-> /functions.cpp || ... | AddMenu ()? || Create the Menu Bar for Main Window || Create Load Item | Create Save Item 
+-> /functions.cpp || ... | compact ()? || Set to Borderless Window 
+-> /functions.cpp || ... | full ()? || Set to Windowed Window | AddMenu()* 
+-> /functions.cpp || ... | UpdateCharLim ()? || Update the Character Limit of Edit Control in order to fit all the text and expand the text 
+
+
+
+
+
+
+
+
+
+
+
+
